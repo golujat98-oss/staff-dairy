@@ -1,132 +1,180 @@
-/* LocalStorage-based DB with optional Supabase sync.
-   This keeps the UI snappy (local operations) while also sending data to Supabase tables
-   for persistence and multi-client visibility. */
+// ===============================
+// DATABASE UTILITIES (LOCAL + SUPABASE SYNC)
+// ===============================
 
-const KEY = 'staff_diary_db_v1'
+// Supabase config
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+let hasSupabase = !!(supabaseUrl && supabaseKey);
 
-const defaultState = {
-  staff: [],
-  attendance: [],
-  payments: [],
-  complaints: [],
-  uploads: []
+// Initialize Supabase client only if keys exist
+let supabase = null;
+if (hasSupabase) {
+  supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 }
 
-function loadState(){
-  try{
-    const raw = localStorage.getItem(KEY)
-    if(!raw) return structuredClone(defaultState)
-    return JSON.parse(raw)
-  }catch(e){
-    return structuredClone(defaultState)
+// ===============================
+// LOCAL STORAGE HELPERS
+// ===============================
+function readLocal(key) {
+  return JSON.parse(localStorage.getItem(key)) || [];
+}
+
+function writeLocal(key, data) {
+  localStorage.setItem(key, JSON.stringify(data));
+}
+
+// ===============================
+// STAFF FUNCTIONS
+// ===============================
+
+// ⭐ REQUIRED BY StaffList.jsx — THIS FIXES NETLIFY BUILD ERROR
+export function getAllStaff() {
+  try {
+    return readLocal("staff");
+  } catch (e) {
+    console.error("Error reading staff list:", e);
+    return [];
   }
 }
 
-function saveState(state){
-  localStorage.setItem(KEY, JSON.stringify(state))
+// Add or Update Staff Locally
+export function upsertStaffLocal(staff) {
+  let all = readLocal("staff");
+  const idx = all.findIndex((s) => s.id === staff.id);
+
+  if (idx >= 0) all[idx] = staff;
+  else all.push(staff);
+
+  writeLocal("staff", all);
 }
 
-// simple helpers to keep UI as before
-export function getAllLocal(st){ return loadState()[st] || [] }
+// Sync Staff to Supabase
+async function safeUpsertStaffSupabase(staff) {
+  if (!hasSupabase) return;
 
-export function upsertStaffLocal(staff){
-  const state = loadState()
-  const idx = state.staff.findIndex(s=>s.id===staff.id)
-  if(idx>=0) state.staff[idx]=staff
-  else state.staff.push(staff)
-  saveState(state)
+  try {
+    await supabase.from("staff").upsert(staff).select();
+  } catch (e) {
+    console.error("Supabase staff upsert error:", e);
+  }
 }
 
-// Attendance local
-export function addAttendanceLocal(record){
-  const state = loadState()
-  state.attendance.push(record)
-  saveState(state)
+// Exported Function (used in Add/Edit Staff)
+export function upsertStaff(staff) {
+  upsertStaffLocal(staff);
+  safeUpsertStaffSupabase(staff); // async fire-and-forget sync
 }
 
-// Payments
-export function addPaymentLocal(p){ const state=loadState(); state.payments.push(p); saveState(state) }
-
-// Complaints
-export function addComplaintLocal(c){ const state=loadState(); state.complaints.push(c); saveState(state) }
-
-export function addUploadLocal(u){ const state=loadState(); state.uploads.push(u); saveState(state) }
-
-// Supabase sync (best-effort, non-blocking)
-import { hasSupabase, supabase } from '../supabase'
-
-async function safeUpsertStaffSupabase(staff){
-  if(!hasSupabase) return
-  try{
-    await supabase.from('staff').upsert(staff).select()
-  }catch(e){ console.error('Supabase staff upsert error', e) }
+// ===============================
+// ATTENDANCE FUNCTIONS
+// ===============================
+export function addAttendanceLocal(record) {
+  let all = readLocal("attendance");
+  all.push(record);
+  writeLocal("attendance", all);
 }
 
-async function safeAddAttendanceSupabase(record){
-  if(!hasSupabase) return
-  try{
-    await supabase.from('attendance').insert(record).select()
-  }catch(e){ console.error('Supabase attendance insert error', e) }
+async function safeAddAttendanceSupabase(record) {
+  if (!hasSupabase) return;
+  try {
+    await supabase.from("attendance").insert(record).select();
+  } catch (e) {
+    console.error("Supabase attendance insert error:", e);
+  }
 }
 
-async function safeAddPaymentSupabase(p){
-  if(!hasSupabase) return
-  try{ await supabase.from('payments').insert(p).select() }catch(e){ console.error('Supabase payment insert error', e) }
+export function addAttendance(record) {
+  addAttendanceLocal(record);
+  safeAddAttendanceSupabase(record);
 }
 
-async function safeAddComplaintSupabase(c){
-  if(!hasSupabase) return
-  try{ await supabase.from('complaints').insert(c).select() }catch(e){ console.error('Supabase complaint insert error', e) }
+// ===============================
+// PAYMENT FUNCTIONS
+// ===============================
+export function addPaymentLocal(p) {
+  let all = readLocal("payments");
+  all.push(p);
+  writeLocal("payments", all);
 }
 
-async function safeAddUploadSupabase(u){
-  if(!hasSupabase) return
-  try{ await supabase.from('uploads').insert(u).select() }catch(e){ console.error('Supabase upload insert error', e) }
+async function safeAddPaymentSupabase(p) {
+  if (!hasSupabase) return;
+  try {
+    await supabase.from("payments").insert(p).select();
+  } catch (e) {
+    console.error("Supabase payment insert error:", e);
+  }
 }
 
-// Export functions used by UI but these keep local sync first and then attempt server sync
-export function upsertStaff(staff){
-  upsertStaffLocal(staff)
-  // fire-and-forget sync
-  safeUpsertStaffSupabase(staff)
+export function addPayment(p) {
+  addPaymentLocal(p);
+  safeAddPaymentSupabase(p);
 }
 
-export function addAttendance(record){
-  addAttendanceLocal(record)
-  safeAddAttendanceSupabase(record)
+// ===============================
+// COMPLAINT FUNCTIONS
+// ===============================
+export function addComplaintLocal(c) {
+  let all = readLocal("complaints");
+  all.push(c);
+  writeLocal("complaints", all);
 }
 
-export function addPayment(p){
-  addPaymentLocal(p)
-  safeAddPaymentSupabase(p)
+async function safeAddComplaintSupabase(c) {
+  if (!hasSupabase) return;
+  try {
+    await supabase.from("complaints").insert(c).select();
+  } catch (e) {
+    console.error("Supabase complaint insert error:", e);
+  }
 }
 
-export function addComplaint(c){
-  addComplaintLocal(c)
-  safeAddComplaintSupabase(c)
+export function addComplaint(c) {
+  addComplaintLocal(c);
+  safeAddComplaintSupabase(c);
 }
 
-export function addUpload(u){
-  addUploadLocal(u)
-  safeAddUploadSupabase(u)
+// ===============================
+// UPLOAD FUNCTIONS
+// ===============================
+export function addUploadLocal(u) {
+  let all = readLocal("uploads");
+  all.push(u);
+  writeLocal("uploads", all);
 }
 
-// Readers still point to localStorage for immediate UI; you can later add fetch-from-supabase views
-export function getAll(st){ return loadState()[st] || [] }
-// GET COMPLAINTS � required by Complaints.jsx
-export function getComplaints(){
-  return loadState().complaints || []
+async function safeAddUploadSupabase(u) {
+  if (!hasSupabase) return;
+  try {
+    await supabase.from("uploads").insert(u).select();
+  } catch (e) {
+    console.error("Supabase upload insert error:", e);
+  }
 }
-// Initialize default demo data if localStorage empty
+
+export function addUpload(u) {
+  addUploadLocal(u);
+  safeAddUploadSupabase(u);
+}
+
+// ===============================
+// INIT DEMO DATA (FIRST RUN ONLY)
+// ===============================
 export function initDemoData() {
-  const raw = localStorage.getItem('staff_diary_db_v1')
-  if (!raw) {
-    localStorage.setItem('staff_diary_db_v1', JSON.stringify({
-      staff: [],
-      attendance: [],
-      payments: [],
-      complaints: [],
-      uploads: []
-    }))
+  if (!localStorage.getItem("staff")) {
+    writeLocal("staff", []);
+  }
+  if (!localStorage.getItem("attendance")) {
+    writeLocal("attendance", []);
+  }
+  if (!localStorage.getItem("payments")) {
+    writeLocal("payments", []);
+  }
+  if (!localStorage.getItem("complaints")) {
+    writeLocal("complaints", []);
+  }
+  if (!localStorage.getItem("uploads")) {
+    writeLocal("uploads", []);
   }
 }
