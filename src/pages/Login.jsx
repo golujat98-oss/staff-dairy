@@ -3,54 +3,45 @@ import "./login.css";
 
 export default function Login() {
   const [phone, setPhone] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
-  const [otp, setOtp] = useState("");
+  const [pass, setPass] = useState("");
 
-  const sendOtp = () => {
-    if (phone.length < 10) return alert("Enter valid phone number");
-    setOtpSent(true);
-  };
-
-  const verifyOtp = () => {
-    if (otp.length < 4) return alert("Enter OTP");
-    alert("Login Successful!");
+  function handleLogin() {
+    if (phone === "" || pass === "") {
+      alert("Please enter phone & password!");
+      return;
+    }
+    localStorage.setItem("admin_token", "active");
     window.location.href = "/dashboard";
-  };
+  }
 
   return (
     <div className="login-wrapper">
       <div className="login-card">
+
+        {/* App Logo */}
+        <div className="logo-circle">
+          <span className="material-icons">lock</span>
+        </div>
+
         <h2 className="login-title">Staff Diary Login</h2>
 
-        {!otpSent ? (
-          <>
-            <label>Phone Number</label>
-            <input
-              type="number"
-              placeholder="Enter mobile number"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-            />
+        <input
+          type="text"
+          placeholder="Phone Number"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+        />
 
-            <button className="login-btn" onClick={sendOtp}>
-              Send OTP
-            </button>
-          </>
-        ) : (
-          <>
-            <label>Enter OTP</label>
-            <input
-              type="number"
-              placeholder="Enter 4-digit OTP"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-            />
+        <input
+          type="password"
+          placeholder="Password"
+          value={pass}
+          onChange={(e) => setPass(e.target.value)}
+        />
 
-            <button className="login-btn" onClick={verifyOtp}>
-              Verify OTP
-            </button>
-          </>
-        )}
+        <button className="login-btn" onClick={handleLogin}>
+          Login
+        </button>
       </div>
     </div>
   );
