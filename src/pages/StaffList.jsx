@@ -1,28 +1,53 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
-import { getAll } from '../utils/db'
+import React, { useEffect, useState } from "react";
+import "./stafflist.css";
+import { getAllStaff } from "../utils/db";
 
-export default function StaffList(){
-  const staff = getAll('staff')
+export default function StaffList() {
+  const [staff, setStaff] = useState([]);
+
+  useEffect(() => {
+    setStaff(getAllStaff());
+  }, []);
+
   return (
-    <div>
-      <div className="row" style={{justifyContent:'space-between', alignItems:'center'}}>
-        <h2>Staff</h2>
-        <Link to="/add-staff"><button>Add Staff</button></Link>
-      </div>
-      <div className="list">
-        {staff.map(s=>(
-          <div key={s.id} className="card row">
-            <div style={{flex:1}}>
-              <strong>{s.name}</strong><div style={{fontSize:12}}>{s.role} • {s.phone}</div>
-            </div>
-            <div>
-              <Link to={'/staff/'+s.id}><button>View</button></Link>
-            </div>
-          </div>
-        ))}
-        {staff.length===0 && <div className="card">No staff yet.</div>}
-      </div>
+    <div className="staff-container">
+      <h2>All Staff</h2>
+
+      <table className="staff-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Role</th>
+            <th>Code</th>
+            <th>Mobile</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {staff.map((s, index) => (
+            <tr key={index}>
+              <td>{s.name}</td>
+              <td>
+                <span className={`role-badge ${s.role.toLowerCase()}`}>
+                  {s.role}
+                </span>
+              </td>
+              <td>{s.code}</td>
+              <td>{s.phone}</td>
+              <td>
+                <span className="active-badge">Active</span>
+              </td>
+              <td>
+                <button className="view-btn">View</button>
+                <button className="edit-btn">Edit</button>
+                <button className="delete-btn">Delete</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
-  )
+  );
 }
