@@ -26,8 +26,8 @@ export default function App(){
         <Link to="/attendance">Attendance</Link>
         <Link to="/payments">Payments</Link>
         <Link to="/complaints">Complaints</Link>
-        
       </nav>
+
       <main className="container">
         <Routes>
           <Route path="/" element={<Login />} />
@@ -41,7 +41,8 @@ export default function App(){
           <Route path="/complaints" element={<Complaints />} />
           <Route path="/uploads" element={<Uploads />} />
           <Route path="/staff-home" element={<StaffHome />} />
-          <Route path="/admin-management" element={<AdminManagement/>} />\n</Routes>
+          <Route path="/admin-management" element={<AdminManagement />} />
+        </Routes>
       </main>
     </div>
   )
