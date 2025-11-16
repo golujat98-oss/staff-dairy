@@ -1,0 +1,47 @@
+import React, {useState} from 'react'
+import { getAll, addAttendance } from '../utils/db'
+
+export default function AttendancePage(){
+  const staff = getAll('staff')
+  const [sel,setSel]=useState(staff[0]?.id||'')
+  const [action,setAction]=useState('in')
+
+  function handleMark(e){
+    e.preventDefault()
+    if(!sel) return alert('Select staff')
+    const now = new Date().toISOString()
+    addAttendance({id:'a'+Date.now().toString(36), staffId:sel, type:action, time:now})
+    alert('Attendance marked')
+  }
+
+  return (
+    <div>
+      <h2>Attendance</h2>
+      <form onSubmit={handleMark} style={{maxWidth:420}}>
+        <label>Staff</label>
+        <select value={sel} onChange={e=>setSel(e.target.value)}>
+          {staff.map(s=> <option value={s.id} key={s.id}>{s.name} ({s.role})</option>)}
+        </select>
+        <label>Action</label>
+        <select value={action} onChange={e=>setAction(e.target.value)}>
+          <option value="in">Check In</option>
+          <option value="out">Check Out</option>
+        </select>
+        <div style={{marginTop:8}}>
+          <button type="submit">Mark</button>
+        </div>
+      </form>
+
+      <h3 style={{marginTop:18}}>Recent Records</h3>
+      <div className="list">
+        {getAll('attendance').slice().reverse().map(r=>(
+          <div key={r.id} className="card">
+            <div className="row" style={{justifyContent:'space-between'}}>
+              <div>{r.staffId} — {r.type} — {new Date(r.time).toLocaleString()}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}

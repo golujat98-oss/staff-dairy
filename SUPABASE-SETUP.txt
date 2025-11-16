@@ -1,0 +1,21 @@
+SUPABASE SETUP (do these steps before running):
+
+1) Create a Supabase project at https://app.supabase.com
+2) In Project Settings -> API, copy URL and anon key.
+   Set environment variables in your .env file:
+     VITE_SUPABASE_URL=your-supabase-url
+     VITE_SUPABASE_ANON_KEY=your-anon-key
+
+3) In Supabase Dashboard -> Storage -> Create a bucket named 'profiles'
+   - Make it public (or configure RLS as you prefer)
+
+4) In Supabase Dashboard -> Authentication -> Settings -> Enable "Phone Auth" provider
+   - Configure any required SMS provider (Twilio or default)
+
+5) Install dependencies:
+   npm install
+
+6) Run dev:
+   npm run dev
+
+Note: SMS sending may require configuring an SMS provider and may incur cost.
