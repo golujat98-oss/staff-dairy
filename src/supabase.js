@@ -1,28 +1,49 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
-const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY
+// Environment variables
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-export const hasSupabase = Boolean(SUPABASE_URL && SUPABASE_ANON)
+// Create supabase client
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 
-export const supabase = hasSupabase ? createClient(SUPABASE_URL, SUPABASE_ANON) : null
+// Default export (IMPORTANT for Vite/Netlify build)
+export default supabase;
 
+// Named export (optional)
+export { supabase };
 
-// Create an attendance request (checkin/checkout)
+// Create an attendance request
 export async function createAttendanceRequest(payload) {
-  // payload: { staff_id, staff_name, staff_code, request_type: 'checkin'|'checkout', requested_time, note }
-  const { data, error } = await supabase.from('attendance_requests').insert([payload]);
-  return { data, error };
+  const { staff_id, staff_name, staff_code, request_type, time } = payload;
+
+  const { data, error } = await supabase
+    .from('attendance_requests')
+    .insert([
+      {
+        staff_id,
+        staff_name,
+        staff_code,
+        request_type,
+        time,
+        status: 'pending',
+        created_at: new Date().toISOString(),
+      },
+    ]);
+
+  if (error) {
+    console.error('Attendance request error:', error);
+  }
+
+  return data;
 }
 
-
-export async function getCurrentUser() {
-  // This is a simple example: in real app use auth session
-  // For quick local testing, the app reads localStorage.current_staff
+// Get current user (local simulation)
+export function getCurrentUser() {
   try {
-    const v = JSON.parse(localStorage.getItem('current_staff') || 'null');
-    return v;
-  } catch(e){
+    const u = localStorage.getItem('current_staff');
+    return u ? JSON.parse(u) : null;
+  } catch (err) {
     return null;
   }
 }
